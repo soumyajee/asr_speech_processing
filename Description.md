@@ -1,49 +1,152 @@
-Description of FastAPI-based ASR Application
-Features Successfully Implemented
+FastAPI-based Automatic Speech Recognition (ASR) Application
+Overview
+This application provides a FastAPI-based server for transcribing 5–10 second Hindi audio clips using the NVIDIA NeMo stt_hi_conformer_ctc_medium model, optimized with ONNX for efficient inference. The application is containerized with Docker for easy deployment and includes input validation, audio preprocessing, and comprehensive documentation.
+Features
 
-Model Preparation: Successfully loaded the NVIDIA NeMo stt_hi_conformer_ctc_medium model and converted it to ONNX format for optimized inference. The model supports transcription of 5–10 second audio clips sampled at 16kHz.
-FastAPI Application: Implemented a FastAPI server with a /transcribe POST endpoint that accepts .wav files and returns transcribed text as JSON. Added input validation to check file type (.wav) and duration (5–10 seconds).
-Containerization: Created a Dockerfile based on python:3.9-slim to containerize the application. The FastAPI server runs on port 8000 using uvicorn.
-Documentation: Provided a README.md with instructions to build and run the Docker container, along with a sample curl command to test the /transcribe endpoint.
-Preprocessing/Inference: Implemented audio preprocessing to resample and normalize input audio, and integrated ONNX runtime for model inference.
+Model: NVIDIA NeMo stt_hi_conformer_ctc_medium model converted to ONNX, supporting transcription of 16kHz Hindi audio clips.
+API: FastAPI server with a /transcribe POST endpoint for uploading .wav files and returning JSON transcriptions.
+Input Validation: Ensures uploaded files are .wav format, 5–10 seconds long, and sampled at 16kHz.
+Containerization: Dockerized application using python:3.9-slim, running on port 8000 with uvicorn.
+Preprocessing: Audio resampling and normalization to ensure compatibility with the model.
+Documentation: Detailed README with setup, build, and usage instructions, including a sample curl command.
 
-Issues Encountered During Development
+Installation and Setup
+Prerequisites
 
-ONNX Conversion: Faced challenges converting the NeMo model to ONNX due to unsupported CTC decoder operations, which requires 129 token size after conversion of .onnx format so i have to resized the token size to 128 as per the no of decoder classes.
-Dependency Conflicts: Installing NeMo alongside FastAPI dependencies caused version mismatches with PyTorch, leading to runtime errors.
-Empty Transcription: While extraction of vocabulary or word from original nemo extension file all words are hindi alphabet only that has saved imside vocab.txt file so it requires the correct hindi audio with proper tone and no background noise with 5-10 seconds duration then only it should get proper transcription Hindi.And the transcription word that go is mimsatch with original audio content of speaker.
-Audio Validation: Validating audio duration was tricky due to varying file formats, requiring additional libraries like pydub for robust parsing.
-Docker Image Size: The Docker image size was larger than desired due to the inclusion of NeMo and ONNX runtime dependencies.
+Docker: Installed on your system.
+Audio File: A 16kHz mono .wav file (5–10 seconds) for testing.
+Tools: Basic familiarity with HTTP requests (e.g., using curl or Postman).
 
-Reasons for Not Implementing Certain Components
+Steps
 
-Async Inference: Did not implement async model inference due to time constraints and limited familiarity with async-compatible ONNX runtimes. The synchronous inference pipeline was prioritized to ensure functionality.
-Bonus Features (CI/CD, Testing): Lacked time to set up a CI/CD pipeline or comprehensive unit tests. Focused on core functionality to meet the deadline.
-Model Optimization Limitations: While ONNX conversion was achieved, further optimizations (e.g., quantization) were not explored due to complexity and lack of documentation for NeMo-specific workflows.
-
-How to Overcome the Challenges
-
-ONNX Conversion: Consult NVIDIA NeMo’s GitHub issues or forums for updated ONNX export scripts. Alternatively, explore TorchScript as a fallback if ONNX issues persist.
-Dependency Conflicts: Use a requirements.txt file with pinned versions (e.g., torch==1.12.0, nemo_toolkit==1.18.0) and test in a virtual environment to isolate conflicts.
-Audio Validation: Leverage librosa or soundfile for more robust audio processing and validation, ensuring compatibility with various .wav formats.
-Docker Image Size: Use multi-stage builds in the Dockerfile to reduce image size by excluding unnecessary build dependencies. Explore lighter base images like python:3.9-alpine if compatible with NeMo.
-Async Inference: Study onnxruntime’s async capabilities or use aiofiles for async file handling. Allocate time to test async performance with sample audio files.
-Bonus Features: Set up a basic GitHub Actions workflow for CI/CD and write unit tests using pytest for the FastAPI endpoint and preprocessing logic.
-
-Known Limitations and Assumptions
-
-Limitations:
-The application assumes input audio is 16kHz mono .wav files. Other formats (e.g., MP3, stereo) require additional preprocessing.
-The ONNX model may have slight accuracy degradation compared to the original NeMo model due to conversion trade-offs.
-The Docker image size is approximately 2GB due to large dependencies, which could be optimized further.
-The inference pipeline is synchronous, which may limit scalability under high concurrency.
+Clone the Repository:
+git clone <repository-url>
+cd <repository-directory>
 
 
-Assumptions:
-The deployment environment has sufficient CPU/GPU resources for ONNX inference.
-Input audio clips are 5–10 seconds long, as specified in the requirements.
-Users have Docker installed and basic knowledge of running containers and sending HTTP requests.
-The NeMo model is suitable for the target language (Hindi) and generalizes well to typical audio inputs.
+Build the Docker Image:
+docker build -t asr-fastapi .
+
+
+Run the Docker Container:
+docker run -p 8000:8000 asr-fastapi
+
+
+Verify the Server:Access the interactive API documentation at http://localhost:8000/docs in a browser.
+
+
+Usage
+Transcribing Audio
+Send a .wav file to the /transcribe endpoint using curl:
+curl -X POST -F "file=@/path/to/audio.wav" http://localhost:8000/transcribe
+
+Example Response:
+{
+  "transcription": "नमस्ते, यह एक परीक्षण है"
+}
+
+Converting Non-.wav Files
+Convert other audio formats (e.g., MP3) to 16kHz mono .wav using ffmpeg:
+ffmpeg -i input.mp3 -ar 16000 -ac 1 output.wav
+
+Notes
+
+Ensure audio files are 5–10 seconds, 16kHz, mono, and in Hindi with clear pronunciation.
+Test the API using the Swagger UI at http://localhost:8000/docs.
+
+Technical Details
+Application Flow
+
+Audio Upload: User sends a .wav file to the /transcribe endpoint.
+Preprocessing: Audio is resampled to 16kHz and normalized using pydub.
+Inference: ONNX runtime processes the audio with the NeMo model and CTC decoder.
+Response: Transcribed text is returned as JSON.
+
+API Documentation
+The FastAPI server provides interactive documentation at http://localhost:8000/docs, where users can test the /transcribe endpoint.
+Model Preparation
+The NVIDIA NeMo stt_hi_conformer_ctc_medium model was converted to ONNX format for optimized inference. The vocabulary is stored in vocab.txt and supports Hindi transcription.
+Challenges and Solutions
+
+
+
+Challenge
+Impact
+Solution
+
+
+
+ONNX Conversion
+Unsupported CTC decoder operations caused export errors.
+Resized token size to 128 to match decoder classes; consulted NeMo GitHub.
+
+
+Dependency Conflicts
+PyTorch version mismatches with NeMo and FastAPI caused runtime errors.
+Used a requirements.txt with pinned versions (e.g., torch==1.12.0, nemo_toolkit==1.18.0).
+
+
+Empty Transcription
+Noisy or non-Hindi audio led to empty or incorrect transcriptions.
+Validated audio for Hindi, 16kHz, and no background noise using pydub.
+
+
+Audio Validation
+Inconsistent .wav formats caused validation failures.
+Integrated pydub for robust audio parsing.
+
+
+Large Docker Image
+~2GB image size due to NeMo and ONNX dependencies.
+Explored multi-stage builds and python:3.9-alpine (not fully implemented).
+
+
+Limitations
+
+Audio Format: Supports only 16kHz mono .wav files. Other formats require preprocessing.
+Model Accuracy: ONNX conversion may slightly reduce accuracy compared to the original NeMo model.
+Scalability: Synchronous inference limits performance under high concurrency.
+Image Size: The Docker image (~2GB) is larger than ideal due to dependencies.
+
+Workarounds:
+
+Use ffmpeg to convert non-.wav files (see Usage).
+Optimize Docker image with multi-stage builds for production.
+Explore async inference for improved scalability.
+
+Assumptions
+
+Environment: Deployment system has sufficient CPU/GPU resources for ONNX inference.
+Input Audio: Audio clips are 5–10 seconds, 16kHz, mono, and in Hindi with clear pronunciation.
+User Knowledge: Users have Docker installed and basic familiarity with HTTP requests.
+
+Future Improvements
+
+Async Inference: Implement asynchronous inference with onnxruntime or aiofiles for better scalability.
+Model Optimization: Explore quantization or pruning to reduce model size and latency.
+CI/CD Pipeline: Set up GitHub Actions for automated testing and deployment.
+Unit Tests: Add pytest tests for the /transcribe endpoint and preprocessing logic.
+Multi-format Support: Extend preprocessing to handle MP3, stereo, or other formats natively.
+Image Optimization: Use multi-stage Docker builds or python:3.9-alpine to reduce image size.
+
+Contributing
+Contributions are welcome! To contribute:
+
+Fork the repository.
+Create a feature branch (git checkout -b feature/xyz).
+Commit your changes (git commit -m 'Add xyz feature').
+Push to the branch (git push origin feature/xyz).
+Open a pull request.
+
+Please include tests and update this README for new features.
+License
+MIT License
+Resources
+
+NVIDIA NeMo Documentation
+FastAPI Documentation
+
+
 
 
 
