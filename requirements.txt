@@ -1,0 +1,7 @@
+fastapi==0.79.0
+uvicorn==0.18.2
+onnxruntime==1.16.3
+nemo_toolkit[asr]
+librosa==0.10.2
+soundfile==0.12.1
+numpy==1.24.4
